@@ -42,6 +42,80 @@
         .tab-btn { flex: 1; padding: 14px; border: none; background: transparent; font-size: 15px; font-weight: 700; color: var(--text-muted); cursor: pointer; border-radius: 10px; text-align: center; }
         .tab-btn.active { background: var(--brand); color: #ffffff; box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25); }
 
+        /* 시각적 프로세스 가이드 (메인 화면용 How it Works) 스타일 */
+        .main-intro-card {
+            background: #ffffff;
+            border-radius: 16px;
+            padding: 40px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.03);
+            border: 1px solid var(--border-color);
+            margin-bottom: 24px;
+            text-align: center;
+        }
+        .main-intro-title {
+            font-size: 22px;
+            font-weight: 800;
+            color: var(--primary);
+            margin-bottom: 8px;
+        }
+        .main-intro-subtitle {
+            font-size: 15px;
+            color: var(--text-muted);
+            margin-bottom: 35px;
+        }
+        .process-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+            gap: 16px;
+            margin-bottom: 35px;
+            text-align: left;
+        }
+        .process-card {
+            background: #F8FAFC;
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 20px 16px;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .process-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 16px rgba(0,0,0,0.05);
+        }
+        .step-badge {
+            font-size: 11px;
+            font-weight: 800;
+            color: var(--brand);
+            margin-bottom: 8px;
+        }
+        .step-icon {
+            font-size: 24px;
+            margin-bottom: 8px;
+        }
+        .process-card h3 {
+            font-size: 15px;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 6px;
+        }
+        .process-card p {
+            font-size: 12px;
+            color: var(--text-muted);
+            line-height: 1.4;
+        }
+        .cta-btn {
+            display: inline-block;
+            background: var(--brand);
+            color: white;
+            padding: 16px 36px;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 700;
+            text-decoration: none;
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
+            transition: background 0.2s;
+        }
+        .cta-btn:hover { background: var(--brand-hover); }
+
         /* 카드 및 폼 스타일 */
         .card { background: #ffffff; border-radius: 16px; padding: 36px; box-shadow: 0 4px 20px rgba(0,0,0,0.03); border: 1px solid var(--border-color); }
         .section-title { font-size: 18px; font-weight: 700; color: var(--primary); margin-bottom: 20px; padding-bottom: 10px; border-bottom: 2px solid #F1F5F9; }
@@ -64,9 +138,10 @@
 
     <nav class="navbar">
         <div class="nav-container">
-            <div class="logo" onclick="openTab('request')">가치온 <span>ValueOn</span></div>
+            <div class="logo" onclick="openTab('main')">가치온 <span>ValueOn</span></div>
             <div class="nav-links">
-                <button type="button" class="nav-btn active" id="nav-request" onclick="openTab('request')">감정평가 의뢰</button>
+                <button type="button" class="nav-btn active" id="nav-main" onclick="openTab('main')">홈</button>
+                <button type="button" class="nav-btn" id="nav-request" onclick="openTab('request')">감정평가 의뢰</button>
                 <button type="button" class="nav-btn" id="nav-calc" onclick="openTab('calc')">수수료 계산기</button>
                 <button type="button" class="nav-btn" id="nav-track" onclick="openTab('track')">진행상태 조회</button>
                 <button type="button" class="nav-btn" id="nav-qna" onclick="openTab('qna')">1:1 고객센터</button>
@@ -82,14 +157,52 @@
     <main class="main-container">
         
         <div class="tab-menu">
-            <button type="button" class="tab-btn active" id="btn-request" onclick="openTab('request')">📋 감정평가 의뢰</button>
+            <button type="button" class="tab-btn active" id="btn-main" onclick="openTab('main')">🏠 홈</button>
+            <button type="button" class="tab-btn" id="btn-request" onclick="openTab('request')">📋 감정평가 의뢰</button>
             <button type="button" class="tab-btn" id="btn-calc" onclick="openTab('calc')">🧮 수수료 계산기</button>
             <button type="button" class="tab-btn" id="btn-track" onclick="openTab('track')">🔍 진행상태 조회</button>
             <button type="button" class="tab-btn" id="btn-qna" onclick="openTab('qna')">💬 1:1 고객센터</button>
         </div>
 
-        <!-- [탭 1] 감정평가 의뢰 -->
-        <div id="tab-request" style="display: block;">
+        <!-- [탭 0: 홈 메인화면] How it Works (이용방법 소개) -->
+        <div id="tab-main" style="display: block;">
+            <div class="main-intro-card">
+                <h2 class="main-intro-title">어떻게 이용하나요?</h2>
+                <p class="main-intro-subtitle">신청부터 감정평가서 수령까지, 단 4단계로 간편하게 진행됩니다.</p>
+                
+                <div class="process-grid">
+                    <div class="process-card">
+                        <div class="step-badge">STEP 01</div>
+                        <div class="step-icon">📋</div>
+                        <h3>간편 의뢰 접수</h3>
+                        <p>부동산 정보와 평가 목적을 입력하여 30초 만에 접수하세요.</p>
+                    </div>
+                    <div class="process-card">
+                        <div class="step-badge">STEP 02</div>
+                        <div class="step-icon">🤝</div>
+                        <h3>최적 평가사 매칭</h3>
+                        <p>해당 지역과 물건에 가장 전문성 있는 평가사를 연결합니다.</p>
+                    </div>
+                    <div class="process-card">
+                        <div class="step-badge">STEP 03</div>
+                        <div class="step-icon">🔍</div>
+                        <h3>현장 조사 및 평가</h3>
+                        <p>철저한 현장 실사와 시세 분석을 거쳐 공정하게 산정합니다.</p>
+                    </div>
+                    <div class="process-card">
+                        <div class="step-badge">STEP 04</div>
+                        <div class="step-icon">📄</div>
+                        <h3>결과 확인 및 발급</h3>
+                        <p>온라인으로 빠르게 최종 감정평가서를 받아보세요.</p>
+                    </div>
+                </div>
+
+                <a href="javascript:void(0);" class="cta-btn" onclick="openTab('request')">지금 바로 감정평가 의뢰하기 ➔</a>
+            </div>
+        </div>
+
+        <!-- [탭 1] 감정평가 의뢰 폼 -->
+        <div id="tab-request" style="display: none;">
             <div class="card">
                 <form id="appraisalForm" enctype="multipart/form-data">
                     <div class="section-title">1. 의뢰 유형 선택</div>
@@ -271,6 +384,7 @@
 <script>
     // 탭 전환 함수
     function openTab(tabName) {
+        document.getElementById('tab-main').style.display = 'none';
         document.getElementById('tab-request').style.display = 'none';
         document.getElementById('tab-calc').style.display = 'none';
         document.getElementById('tab-track').style.display = 'none';
@@ -287,6 +401,8 @@
 
         var activeNav = document.getElementById('nav-' + tabName);
         if (activeNav) activeNav.classList.add('active');
+        
+        window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
     // 수수료 로컬 계산 함수
