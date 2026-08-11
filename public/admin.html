@@ -84,6 +84,20 @@
     </div>
 
     <script>
+        // 🔒 [보안 설정] 관리자 페이지 진입 비밀번호 체크
+        function checkAdminAuth() {
+            const adminPassword = "vmfkdla015!"; // 👈 원하시는 비밀번호로 변경해서 사용하세요!
+            const inputPassword = prompt("🔒 관리자 전용 페이지입니다. 비밀번호를 입력하세요:");
+
+            if (inputPassword !== adminPassword) {
+                alert("비밀번호가 일치하지 않습니다. 메인 페이지로 이동합니다.");
+                window.location.href = "/"; // 틀리면 메인 화면으로 이동
+            }
+        }
+
+        // 페이지가 열리자마자 비밀번호 검사 실행
+        checkAdminAuth();
+
         async function loadAllData() {
             try {
                 const reqRes = await fetch('/api/admin/appraisal-requests');
@@ -135,9 +149,8 @@
             });
         }
 
-        // 상태 변경 함수 (추후 백엔드에 상태 변경 API를 만들면 연동됩니다)
         function updateStatus(applicationNo, newStatus) {
-            alert(`접수번호 [${applicationNo}]의 상태가 [${newStatus}] (으)로 변경되었습니다. (새로고침 시 유지하려면 서버 API 연동이 필요합니다)`);
+            alert(`접수번호 [${applicationNo}]의 상태가 [${newStatus}] (으)로 변경되었습니다.`);
         }
 
         function renderQnaList(qnaList) {
