@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>가치온 (Value On) - 스마트 감정평가 플랫폼</title>
+    <title>가치온 (Value On) - 스마트 감정평가 중개 플랫폼</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css">
     <style>
         :root {
@@ -75,8 +75,8 @@
     </nav>
 
     <section class="hero-section">
-        <h1 class="hero-title">신속하고 정확한 스마트 감정평가</h1>
-        <p class="hero-subtitle">온라인 감정평가 의뢰부터 실시간 수수료 계산, 진행 상태 조회까지 원스톱으로 제공합니다.</p>
+        <h1 class="hero-title">신속하고 정확한 스마트 감정평가 중개</h1>
+        <p class="hero-subtitle">믿을 수 있는 감정평가사와 연결해 드리는 온라인 중개 플랫폼입니다.</p>
     </section>
 
     <main class="main-container">
@@ -265,7 +265,7 @@
     </main>
 
     <footer class="footer">
-        <p>© 2026 가치온 (Value On) 감정평가법인. All rights reserved.</p>
+        <p>© 2026 가치온 (Value On). All rights reserved.</p>
     </footer>
 
 <script>
@@ -289,7 +289,7 @@
         if (activeNav) activeNav.classList.add('active');
     }
 
-    // [수정된 부분] 로컬에서 직접 수수료 계산
+    // 수수료 로컬 계산 함수
     function calculateFee() {
         const amount = parseFloat(document.getElementById('calcAmount').value);
         if (!amount || amount <= 0) {
@@ -300,7 +300,6 @@
         }
 
         let baseFee = 0;
-        // 감정평가 보수기준 누진 요율 (예시)
         if (amount <= 50000000) baseFee = 250000;
         else if (amount <= 500000000) baseFee = 250000 + (amount - 50000000) * 0.0011;
         else if (amount <= 1000000000) baseFee = 745000 + (amount - 500000000) * 0.0009;
