@@ -55,6 +55,7 @@
         .calc-box { background: #F0F9FF; border: 1px solid #BAE6FD; border-radius: 12px; padding: 20px; margin-top: 16px; }
         .calc-result { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 14px; color: #0369A1; }
         .calc-total { display: flex; justify-content: space-between; margin-top: 14px; padding-top: 12px; border-top: 1px dashed #7DD3FC; font-weight: 800; font-size: 18px; color: var(--brand); }
+        .guide-text { font-size: 12px; color: #64748B; margin-top: 15px; border-top: 1px solid #BAE6FD; padding-top: 10px; }
         .result-box { display: none; background: #F8FAFC; border: 1px solid var(--border-color); border-radius: 12px; padding: 20px; margin-top: 20px; }
         .footer { background: #0F172A; color: #94A3B8; padding: 30px 20px; text-align: center; font-size: 13px; margin-top: 60px; }
     </style>
@@ -202,6 +203,7 @@
                         <span>최종 예상 수수료</span>
                         <span id="totalFeeText">0 원</span>
                     </div>
+                    <p class="guide-text">※ 본 계산 금액은 표준 기준에 따른 참고용이며, 실제 청구 시 여비 및 제반 실비가 합산될 수 있습니다.</p>
                 </div>
             </div>
         </div>
@@ -260,7 +262,6 @@
                 </form>
             </div>
         </div>
-
     </main>
 
     <footer class="footer">
@@ -276,14 +277,10 @@
         document.getElementById('tab-qna').style.display = 'none';
 
         var target = document.getElementById('tab-' + tabName);
-        if (target) {
-            target.style.display = 'block';
-        }
+        if (target) target.style.display = 'block';
 
         var btns = document.querySelectorAll('.tab-btn, .nav-btn');
-        for (var i = 0; i < btns.length; i++) {
-            btns[i].classList.remove('active');
-        }
+        btns.forEach(b => b.classList.remove('active'));
 
         var activeBtn = document.getElementById('btn-' + tabName);
         if (activeBtn) activeBtn.classList.add('active');
@@ -292,9 +289,9 @@
         if (activeNav) activeNav.classList.add('active');
     }
 
-    // 수수료 계산
-    async function calculateFee() {
-        const amount = document.getElementById('calcAmount').value;
+    // [수정된 부분] 로컬에서 직접 수수료 계산
+    function calculateFee() {
+        const amount = parseFloat(document.getElementById('calcAmount').value);
         if (!amount || amount <= 0) {
             document.getElementById('baseFeeText').innerText = '0 원';
             document.getElementById('vatText').innerText = '0 원';
@@ -302,31 +299,29 @@
             return;
         }
 
-        try {
-            const response = await fetch('/api/calculate-fee', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ estimatedValue: amount })
-            });
-            const data = await response.json();
+        let baseFee = 0;
+        // 감정평가 보수기준 누진 요율 (예시)
+        if (amount <= 50000000) baseFee = 250000;
+        else if (amount <= 500000000) baseFee = 250000 + (amount - 50000000) * 0.0011;
+        else if (amount <= 1000000000) baseFee = 745000 + (amount - 500000000) * 0.0009;
+        else if (amount <= 5000000000) baseFee = 1195000 + (amount - 1000000000) * 0.0008;
+        else baseFee = 4395000 + (amount - 5000000000) * 0.0007;
 
-            if (data.success) {
-                document.getElementById('baseFeeText').innerText = data.baseFee.toLocaleString() + ' 원';
-                document.getElementById('vatText').innerText = data.vat.toLocaleString() + ' 원';
-                document.getElementById('totalFeeText').innerText = data.totalFee.toLocaleString() + ' 원';
-            }
-        } catch (err) { console.error(err); }
+        const vat = Math.floor(baseFee * 0.1);
+        const total = Math.floor(baseFee + vat);
+
+        document.getElementById('baseFeeText').innerText = Math.floor(baseFee).toLocaleString() + ' 원';
+        document.getElementById('vatText').innerText = vat.toLocaleString() + ' 원';
+        document.getElementById('totalFeeText').innerText = total.toLocaleString() + ' 원';
     }
 
-    // 의뢰 접수
+    // 의뢰 접수 (서버 연동)
     document.getElementById('appraisalForm').addEventListener('submit', async (e) => {
         e.preventDefault();
         const formData = new FormData(e.target);
-
         try {
             const response = await fetch('/api/appraisal-requests', { method: 'POST', body: formData });
             const result = await response.json();
-
             if (result.success) {
                 alert(`✅ 의뢰가 성공적으로 접수되었습니다!\n\n• 접수번호: ${result.applicationNo}`);
                 e.target.reset();
@@ -337,10 +332,8 @@
     // 1:1 고객센터 문의 접수 (서버 연동)
     document.getElementById('qnaForm').addEventListener('submit', async (e) => {
         e.preventDefault();
-        
         const formData = new FormData(e.target);
         const data = Object.fromEntries(formData.entries());
-
         try {
             const response = await fetch('/api/qna', {
                 method: 'POST',
@@ -348,32 +341,21 @@
                 body: JSON.stringify(data)
             });
             const result = await response.json();
-
             if (result.success) {
                 alert('✅ 문의가 성공적으로 접수되었습니다. 담당자가 확인 후 답변해 드립니다.');
                 e.target.reset();
-            } else {
-                alert('접수 실패: ' + result.message);
-            }
-        } catch (err) {
-            alert('서버 통신 중 오류가 발생했습니다.');
-        }
+            } else { alert('접수 실패: ' + result.message); }
+        } catch (err) { alert('서버 통신 중 오류가 발생했습니다.'); }
     });
 
-    // 진행상태 조회
+    // 진행상태 조회 (서버 연동)
     async function trackStatus() {
         const appNo = document.getElementById('trackAppNo').value.trim();
         const phone = document.getElementById('trackPhone').value.trim();
-
-        if (!appNo || !phone) {
-            alert('접수번호와 연락처를 모두 입력해 주세요.');
-            return;
-        }
-
+        if (!appNo || !phone) { alert('접수번호와 연락처를 모두 입력해 주세요.'); return; }
         try {
             const response = await fetch(`/api/appraisal-requests/track?applicationNo=${encodeURIComponent(appNo)}&clientPhone=${encodeURIComponent(phone)}`);
             const result = await response.json();
-
             if (result.success) {
                 const data = result.data;
                 document.getElementById('trackResultBox').style.display = 'block';
