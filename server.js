@@ -1,6 +1,7 @@
 const express = require('express');
 const multer = require('multer');
 const path = require('path');
+const fs = require('fs'); // 👈 파일 저장을 위한 fs 모듈 추가
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -8,14 +9,35 @@ const PORT = process.env.PORT || 3000;
 // 1. 미들웨어 설정
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use(express.static(path.join(__dirname, 'public'))); // public 폴더 정적 파일 제공
+app.use(express.static(path.join(__dirname, 'public')));
 
-// 파일 업로드 설정 (uploads 폴더 저장)
+// 파일 업로드 설정
 const upload = multer({ dest: 'uploads/' });
 
-// 2. 임시 데이터 저장소 (DB 연동 전 메모리 저장용)
-let appraisalRequests = []; // 감정평가 의뢰 목록
-let qnaList = [];           // 1:1 고객 문의 목록
+// 2. 파일(DB 역할)을 이용한 데이터 저장/불러오기 설정
+const DATA_FILE = path.join(__dirname, 'data.json');
+
+// 데이터 불러오기 함수
+function loadData() {
+    try {
+        if (fs.existsSync(DATA_FILE)) {
+            const rawData = fs.readFileSync(DATA_FILE, 'utf8');
+            return JSON.parse(rawData);
+        }
+    } catch (err) {
+        console.error('데이터를 읽어오는 중 오류 발생:', err);
+    }
+    return { appraisalRequests: [], qnaList: [] };
+}
+
+// 데이터 저장하기 함수
+function saveData(data) {
+    try {
+        fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2), 'utf8');
+    } catch (err) {
+        console.error('데이터를 저장하는 중 오류 발생:', err);
+    }
+}
 
 // ==========================================
 // [API 1] 감정평가 예상 수수료 계산 API
@@ -28,7 +50,6 @@ app.post('/api/calculate-fee', (req, res) => {
         return res.status(400).json({ success: false, message: '올바른 자산가액을 입력하세요.' });
     }
 
-    // 간단 수수료 계산 로직 (예시 요율)
     let baseFee = 0;
     if (value <= 50000000) {
         baseFee = Math.max(200000, value * 0.005);
@@ -44,12 +65,7 @@ app.post('/api/calculate-fee', (req, res) => {
     const vat = Math.floor(baseFee * 0.1);
     const totalFee = baseFee + vat;
 
-    res.json({
-        success: true,
-        baseFee,
-        vat,
-        totalFee
-    });
+    res.json({ success: true, baseFee, vat, totalFee });
 });
 
 // ==========================================
@@ -62,12 +78,14 @@ app.post('/api/appraisal-requests', upload.array('attachment'), (req, res) => {
         return res.status(400).json({ success: false, message: '필수 입력 항목이 누락되었습니다.' });
     }
 
-    // 💡 접수번호 생성 로직 (Q년월-01 형식)
+    // 파일에서 현재 데이터 불러오기
+    const db = loadData();
+
+    // 접수번호 생성 (Q년월-01 형식)
     const today = new Date();
-    const year = String(today.getFullYear()).slice(2); // 연도 뒤 2자리 (예: 2026 -> '26')
-    const month = String(today.getMonth() + 1).padStart(2, '0'); // 월 (예: 8 -> '08')
-    const sequence = String(appraisalRequests.length + 1).padStart(2, '0'); // 일련번호 (01, 02, 03 ...)
-    
+    const year = String(today.getFullYear()).slice(2);
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const sequence = String(db.appraisalRequests.length + 1).padStart(2, '0');
     const applicationNo = `Q${year}${month}-${sequence}`;
 
     const newRequest = {
@@ -89,7 +107,9 @@ app.post('/api/appraisal-requests', upload.array('attachment'), (req, res) => {
         createdAt: new Date().toLocaleString('ko-KR')
     };
 
-    appraisalRequests.push(newRequest);
+    db.appraisalRequests.push(newRequest);
+    saveData(db); // 파일에 즉시 저장
+
     console.log('📌 새 감정평가 의뢰 접수:', newRequest);
 
     res.json({
@@ -104,8 +124,9 @@ app.post('/api/appraisal-requests', upload.array('attachment'), (req, res) => {
 // ==========================================
 app.get('/api/appraisal-requests/track', (req, res) => {
     const { applicationNo, clientPhone } = req.query;
+    const db = loadData();
 
-    const result = appraisalRequests.find(item => 
+    const result = db.appraisalRequests.find(item => 
         item.application_no === applicationNo && item.clientPhone === clientPhone
     );
 
@@ -126,6 +147,8 @@ app.post('/api/qna', (req, res) => {
         return res.status(400).json({ success: false, message: '모든 작성란을 입력해 주세요.' });
     }
 
+    const db = loadData();
+
     const newQna = {
         id: Date.now(),
         writerName,
@@ -135,7 +158,9 @@ app.post('/api/qna', (req, res) => {
         createdAt: new Date().toLocaleString('ko-KR')
     };
 
-    qnaList.push(newQna);
+    db.qnaList.push(newQna);
+    saveData(db); // 파일에 즉시 저장
+
     console.log('💬 새 1:1 문의 접수:', newQna);
 
     res.json({ success: true, message: '문의가 성공적으로 등록되었습니다.' });
@@ -145,17 +170,16 @@ app.post('/api/qna', (req, res) => {
 // [API 5] 관리자용 문의 목록 조회 API
 // ==========================================
 app.get('/api/admin/qna-list', (req, res) => {
-    res.json({ success: true, qnaList });
+    const db = loadData();
+    res.json({ success: true, qnaList: db.qnaList });
 });
 
 // ==========================================
 // [API 6] 관리자용 감정평가 의뢰 목록 조회 API
 // ==========================================
 app.get('/api/admin/appraisal-requests', (req, res) => {
-    res.json({ 
-        success: true, 
-        requests: appraisalRequests 
-    });
+    const db = loadData();
+    res.json({ success: true, requests: db.appraisalRequests });
 });
 
 // 서버 실행
