@@ -62,10 +62,13 @@ app.post('/api/appraisal-requests', upload.array('attachment'), (req, res) => {
         return res.status(400).json({ success: false, message: '필수 입력 항목이 누락되었습니다.' });
     }
 
+    // 💡 접수번호 생성 로직 (Q년월-01 형식)
     const today = new Date();
-    const dateStr = today.toISOString().slice(2, 10).replace(/-/g, '');
-    const randomNum = Math.floor(1000 + Math.random() * 9000);
-    const applicationNo = `Q-${dateStr}-${randomNum}`;
+    const year = String(today.getFullYear()).slice(2); // 연도 뒤 2자리 (예: 2026 -> '26')
+    const month = String(today.getMonth() + 1).padStart(2, '0'); // 월 (예: 8 -> '08')
+    const sequence = String(appraisalRequests.length + 1).padStart(2, '0'); // 일련번호 (01, 02, 03 ...)
+    
+    const applicationNo = `Q${year}${month}-${sequence}`;
 
     const newRequest = {
         application_no: applicationNo,
@@ -114,7 +117,7 @@ app.get('/api/appraisal-requests/track', (req, res) => {
 });
 
 // ==========================================
-// [API 4] 1:1 고객 문의 접수 API (신규 추가)
+// [API 4] 1:1 고객 문의 접수 API
 // ==========================================
 app.post('/api/qna', (req, res) => {
     const { writerName, writerPhone, title, content } = req.body;
@@ -139,14 +142,14 @@ app.post('/api/qna', (req, res) => {
 });
 
 // ==========================================
-// [API 5] 관리자용 문의 목록 조회 API (신규 추가)
+// [API 5] 관리자용 문의 목록 조회 API
 // ==========================================
 app.get('/api/admin/qna-list', (req, res) => {
     res.json({ success: true, qnaList });
 });
 
 // ==========================================
-// [API 6] 관리자용 감정평가 의뢰 목록 조회 API (신규 추가)
+// [API 6] 관리자용 감정평가 의뢰 목록 조회 API
 // ==========================================
 app.get('/api/admin/appraisal-requests', (req, res) => {
     res.json({ 
