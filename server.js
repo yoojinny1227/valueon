@@ -1,7 +1,7 @@
 const express = require('express');
 const multer = require('multer');
 const path = require('path');
-const fs = require('fs'); // 👈 파일 저장을 위한 fs 모듈 추가
+const axios = require('axios'); // 👈 구글 시트 전송용 모듈
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -14,30 +14,8 @@ app.use(express.static(path.join(__dirname, 'public')));
 // 파일 업로드 설정
 const upload = multer({ dest: 'uploads/' });
 
-// 2. 파일(DB 역할)을 이용한 데이터 저장/불러오기 설정
-const DATA_FILE = path.join(__dirname, 'data.json');
-
-// 데이터 불러오기 함수
-function loadData() {
-    try {
-        if (fs.existsSync(DATA_FILE)) {
-            const rawData = fs.readFileSync(DATA_FILE, 'utf8');
-            return JSON.parse(rawData);
-        }
-    } catch (err) {
-        console.error('데이터를 읽어오는 중 오류 발생:', err);
-    }
-    return { appraisalRequests: [], qnaList: [] };
-}
-
-// 데이터 저장하기 함수
-function saveData(data) {
-    try {
-        fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2), 'utf8');
-    } catch (err) {
-        console.error('데이터를 저장하는 중 오류 발생:', err);
-    }
-}
+// 💡 아까 복사해 둔 구글 앱스 스크립트 웹 앱 URL을 여기에 넣으세요!
+const GOOGLE_SHEET_URL = 'https://script.google.com/macros/s/AKfycbxu2poRFQJNvvyoyOwLVnDtZMLHuBbX0G2OIrP9Nfto0dCp6HgccOZmZmYeZichg7wG/exec';
 
 // ==========================================
 // [API 1] 감정평가 예상 수수료 계산 API
@@ -69,37 +47,34 @@ app.post('/api/calculate-fee', (req, res) => {
 });
 
 // ==========================================
-// [API 2] 감정평가 의뢰 접수 API
+// [API 2] 감정평가 의뢰 접수 API (구글 시트 연동)
 // ==========================================
-app.post('/api/appraisal-requests', upload.array('attachment'), (req, res) => {
+app.post('/api/appraisal-requests', upload.array('attachment'), async (req, res) => {
     const { requestType, clientName, clientPhone, clientEmail, purpose, propertyType, address, ownerName, estimatedMarketValue, detail } = req.body;
 
     if (!clientName || !clientPhone || !purpose || !propertyType || !address) {
         return res.status(400).json({ success: false, message: '필수 입력 항목이 누락되었습니다.' });
     }
 
-    // 파일에서 현재 데이터 불러오기
-    const db = loadData();
-
-    // 접수번호 생성 (Q년월-01 형식)
+    // 접수번호 생성 (Q년월-랜덤4자리 형식)
     const today = new Date();
     const year = String(today.getFullYear()).slice(2);
     const month = String(today.getMonth() + 1).padStart(2, '0');
-    const sequence = String(db.appraisalRequests.length + 1).padStart(2, '0');
-    const applicationNo = `Q${year}${month}-${sequence}`;
+    const randomNum = Math.floor(1000 + Math.random() * 9000);
+    const applicationNo = `Q${year}${month}-${randomNum}`;
 
     const newRequest = {
         application_no: applicationNo,
-        requestType,
+        requestType: requestType || '일반의뢰',
         clientName,
         clientPhone,
-        clientEmail,
+        clientEmail: clientEmail || '',
         purpose,
         propertyType,
         address,
-        ownerName,
-        estimatedMarketValue,
-        detail,
+        ownerName: ownerName || '',
+        estimatedMarketValue: estimatedMarketValue || '',
+        detail: detail || '',
         status: '접수완료',
         assigned_appraiser: '담당자 배정 중',
         final_fee: 0,
@@ -107,10 +82,13 @@ app.post('/api/appraisal-requests', upload.array('attachment'), (req, res) => {
         createdAt: new Date().toLocaleString('ko-KR')
     };
 
-    db.appraisalRequests.push(newRequest);
-    saveData(db); // 파일에 즉시 저장
-
-    console.log('📌 새 감정평가 의뢰 접수:', newRequest);
+    // 구글 스프레드시트로 데이터 전송
+    try {
+        await axios.post(GOOGLE_SHEET_URL, newRequest);
+        console.log('📊 구글 스프레드시트 저장 성공:', applicationNo);
+    } catch (error) {
+        console.error('❌ 구글 스프레드시트 전송 실패:', error.message);
+    }
 
     res.json({
         success: true,
@@ -120,25 +98,7 @@ app.post('/api/appraisal-requests', upload.array('attachment'), (req, res) => {
 });
 
 // ==========================================
-// [API 3] 진행상태 및 결과 조회 API
-// ==========================================
-app.get('/api/appraisal-requests/track', (req, res) => {
-    const { applicationNo, clientPhone } = req.query;
-    const db = loadData();
-
-    const result = db.appraisalRequests.find(item => 
-        item.application_no === applicationNo && item.clientPhone === clientPhone
-    );
-
-    if (result) {
-        res.json({ success: true, data: result });
-    } else {
-        res.status(404).json({ success: false, message: '일치하는 의뢰 내역을 찾을 수 없습니다.' });
-    }
-});
-
-// ==========================================
-// [API 4] 1:1 고객 문의 접수 API
+// [API 3] 1:1 고객 문의 접수 API
 // ==========================================
 app.post('/api/qna', (req, res) => {
     const { writerName, writerPhone, title, content } = req.body;
@@ -146,8 +106,6 @@ app.post('/api/qna', (req, res) => {
     if (!writerName || !writerPhone || !title || !content) {
         return res.status(400).json({ success: false, message: '모든 작성란을 입력해 주세요.' });
     }
-
-    const db = loadData();
 
     const newQna = {
         id: Date.now(),
@@ -158,28 +116,8 @@ app.post('/api/qna', (req, res) => {
         createdAt: new Date().toLocaleString('ko-KR')
     };
 
-    db.qnaList.push(newQna);
-    saveData(db); // 파일에 즉시 저장
-
     console.log('💬 새 1:1 문의 접수:', newQna);
-
     res.json({ success: true, message: '문의가 성공적으로 등록되었습니다.' });
-});
-
-// ==========================================
-// [API 5] 관리자용 문의 목록 조회 API
-// ==========================================
-app.get('/api/admin/qna-list', (req, res) => {
-    const db = loadData();
-    res.json({ success: true, qnaList: db.qnaList });
-});
-
-// ==========================================
-// [API 6] 관리자용 감정평가 의뢰 목록 조회 API
-// ==========================================
-app.get('/api/admin/appraisal-requests', (req, res) => {
-    const db = loadData();
-    res.json({ success: true, requests: db.appraisalRequests });
 });
 
 // 서버 실행
