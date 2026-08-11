@@ -145,6 +145,16 @@ app.get('/api/admin/qna-list', (req, res) => {
     res.json({ success: true, qnaList });
 });
 
+// ==========================================
+// [API 6] 관리자용 감정평가 의뢰 목록 조회 API (신규 추가)
+// ==========================================
+app.get('/api/admin/appraisal-requests', (req, res) => {
+    res.json({ 
+        success: true, 
+        requests: appraisalRequests 
+    });
+});
+
 // 서버 실행
 app.listen(PORT, () => {
     console.log(`🚀 서버가 http://localhost:${PORT} 에서 실행 중입니다.`);
