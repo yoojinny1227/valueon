@@ -16,7 +16,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 const upload = multer({ dest: 'uploads/' });
 
 // 💡 구글 앱스 스크립트 웹 앱 URL
-const GOOGLE_SHEET_URL = 'https://script.google.com/macros/s/AKfycbxu2poRFQJNv-yoyOwLVnDtZMLHuBbX0G2OIrP9Nfto0dCp6HgccOZmZmYeZichg7wG/exec';
+const GOOGLE_SHEET_URL = 'https://script.google.com/macros/s/AKfycbxu2poRFQJNvvyoyOwLVnDtZMLHuBbX0G2OIrP9Nfto0dCp6HgccOZmZmYeZichg7wG/exec';
 
 // 2. 파일(DB 역할)을 이용한 데이터 저장/불러오기 설정
 const DATA_FILE = path.join(__dirname, 'data.json');
